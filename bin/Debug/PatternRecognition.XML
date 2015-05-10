@@ -4,160 +4,347 @@
         <name>PatternRecognition</name>
     </assembly>
     <members>
-        <member name="T:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork">
-            <summary>
-            ニューラルネットワーク処理クラス
-            </summary>
-        </member>
         <member name="T:PatternRecognition.ArtificialNeuralNetwork.ILearningMachine">
             <summary>
             将来的にSVMの搭載も考えてインターフェイスを考察するために抽出してみたpublicたち
             現時点ではほぼ意味がない。特に引数のあたり。
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.parameter">
+        <member name="T:PatternRecognition.ArtificialNeuralNetwork.Layer">
             <summary>
-            本クラスの構造を規定するパラメータ
-            <para>中間層数などを格納する。</para>
+            ニューラルネットにおける入力・中間・出力層クラス
+            <para>入力層から出力層までを扱うクラスです。</para>
+            <para>利用クラスにおいて層を配列として宣言して扱ってもよかったのだろうけど、なんだか嫌だったのでこのクラスを一つ宣言すれば完結するようにした。</para>
+            <para>メモ：処理には再帰構造を使っています。</para>
+            <para>2011/12/11現在、ユニット間の結合係数は層の出力を得るたびに逐次処理を行っているので厳密にはBPのアルゴリズムとはずれるんだけど上手く動いている。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.layer">
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.grossLayerNum">
             <summary>
-            演算処理を実行するレイヤークラス
-            <para>再帰構造になっているので一つのオブジェクトで演算は完結している。</para>
+            総層数
             </summary>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.GetParameter">
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.myLayerNum">
             <summary>
-            ニューラルネットワークの構成パラメータを返す
+            通し層番号
             </summary>
-            <returns>ニューラルネットワークの構成パラメータ</returns>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.ToString">
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.units">
             <summary>
-            ニューラルネットの構成パラメータ及び結合係数を文字列として出力する。
+            この層が保持するユニット
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.parameter">
+            <summary>
+            ニューラルネットのパラメータ
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.subsidiaryLayer">
+            <summary>
+            下層レイヤ
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.learningCoefficient">
+            <summary>
+            学習係数
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.preLayerUnitNum">
+            <summary>
+            前層のユニット数
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.variationError">
+            <summary>
+            出力層における平均出力誤差の変化量
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.backupError">
+            <summary>
+            出力層における平均出力誤差のバックアップ
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.totalOutputError">
+            <summary>
+            出力層における出力誤差の総計
+            <para>以下で定義しています。</para>
+            <para>sumError += Math.Abs(this.units[i].Error);</para>
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.myRandom">
+            <summary>
+            乱数生成器
+            <para>教師データに対する誤差量に加える乱数に利用します。</para>
+            </summary>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.ToString">
+            <summary>
+            この層が保持する全ユニットの結合係数を文字列化する
+            </summary>
+            <returns>文字列化したレイヤ情報</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetThreshold">
+            <summary>
+            各ユニットが持つ発火の閾値を配列で取得する
             </summary>
             <returns></returns>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Save(System.String,System.Boolean)">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetWeight(System.Int32)">
             <summary>
-            指定ファイル名でニューラルネットの状態量をテキストファイルへ保存する
-            <para>デフォルトのファイル名は「NN.ini」です。</para>
+            指定された前段のユニット番号に対する重みを配列で返す
+            <remarks>
+            例えば本オブジェクトが出力層である時に8という数字が指定された場合、直前の中間層の持つ第9ユニットに対する結合係数を返す。
+            </remarks>
+            </summary>
+            <param name="index">前段のユニット番号</param>
+            <returns>指定ユニットと結びついた重み</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetError">
+            <summary>
+            各ユニットの出力誤差を配列で返す
+            </summary>
+            <returns>出力誤差</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetOutput">
+            <summary>
+            各ユニットの出力値を配列で返す
+            </summary>
+            <returns>ユニットの出力</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.CalcOwnUnitsError(PatternRecognition.Vector,PatternRecognition.Vector)">
+            <summary>
+            ユニットの出力誤差を計算し、ユニットに記憶させる
+            </summary>
+            <param name="NeuralNetTeacher">教師ベクトル</param>
+            <param name="myOutput">出力ベクトル</param>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetAmountOfCorrection(System.Double,System.Double,System.Double)">
+            <summary>
+            結合荷重の修正量を返す
+            </summary>
+            <param name="unitOutputError">ユニットの出力誤差</param>
+            <param name="unitOutput">ユニットの出力値</param>
+            <param name="preLayerOutput">調整したい結合荷重が接続された前段ユニットの出力値</param>
+            <returns>重み修正量</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.CalibrateWeightAndThreshold(PatternRecognition.Vector,PatternRecognition.Vector)">
+            <summary>
+            結合係数修正量の計算、および発火の閾値修正を実施する
+            <para>ユニットの誤差量を計算した後に呼び出してください。</para>
+            </summary>
+            <param name="preLayerOutput">前段の層の出力</param>
+            <param name="myOutput">この層の出力ベクトル</param>
+            <exception cref="T:System.SystemException">入力層で本メソッドが呼び出されるとスロー</exception>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.CalibrateWeightVectors">
+            <summary>
+            全てのユニットに対して予めセットした修正量を適用して、結合係数を調整する
+            <para>より下層に位置するLayerの修正も指示する。</para>
+            </summary>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetResult(PatternRecognition.Vector,PatternRecognition.Vector)">
+            <summary>
+            特徴ベクトルを渡して、演算結果を返す
+            </summary>
+            <param name="preLayerOutput">特徴ベクトル／前段の出力ベクトル</param>
+            <param name="teacher">教師ベクトル</param>
+            <returns>演算結果</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.InitWeightVectorWithRandom">
+            <summary>
+            重みベクトルを乱数で初期化する
+            </summary>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.Setup(System.String)">
+            <summary>
+            ファイル名を指定して結合係数を読み込ませる
             </summary>
             <param name="fname">ファイル名</param>
-            <param name="append">追記の有無<para>true：追記</para></param>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Recognize(System.Double[])">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.#ctor(PatternRecognition.ArtificialNeuralNetwork.Parameter,System.Int32,System.Int32)">
             <summary>
-            特徴ベクトルを基に識別を行う
+            レイヤークラスのコンストラクタ
+            <para>このクラスインスタンスを一つ生成すれば、入力層から出力層までを表現可能です。</para>
+            <para>
+            本クラスを生成する際、numOfPreLayerUnitは0と設定することをお勧めします。
+            0でなくともエラーは出ませんが、入力層には結合係数が定義されないためです。
+            </para>
             </summary>
-            <param name="featureVector">特徴ベクトル</param>
-            <returns>識別結果</returns>
+            <param name="_parameter">ニューラルネットのパラメータ</param>
+            <param name="_myLayerNum">層番号</param>
+            <param name="numOfPreLayerUnit">前の層のユニット数（省略可能です。デフォルトでは0となります。）</param>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Recognize(PatternRecognition.Feature)">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.#cctor">
             <summary>
-            特徴ベクトルを基に識別を行う
-            </summary>
-            <param name="featureVector">特徴ベクトル</param>
-            <returns>識別結果</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Recognize(System.Double)">
-            <summary>
-            特徴データを基に識別を行う
-            <para>入力ユニットが1つの場合に使用します。出力層の第0ユニットの出力を返します。関数近似の用途を想定しています。</para>
-            </summary>
-            <param name="feature">特徴データ</param>
-            <returns>返値<para>出力層の第0ユニットの出力</para></returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(System.Double[],System.Double[])">
-            <summary>
-            特徴ベクトルを基に、学習を行う
-            </summary>
-            <param name="featureVector">特徴ベクトル</param>
-            <param name="NeuralNetTeacher">教師ベクトル</param>
-            <returns>識別結果</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(PatternRecognition.Feature,PatternRecognition.Vector)">
-            <summary>
-            特徴ベクトルを基に、学習を行う
-            </summary>
-            <param name="featureVector">特徴ベクトル</param>
-            <param name="NeuralNetTeacher">教師ベクトル</param>
-            <returns>識別結果</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(PatternRecognition.Feature,System.Double)">
-            <summary>
-            特徴ベクトルを基に、学習を行う
-            <para>出力が一つしかない場合に特に便利です。例えばXORの学習時に利用してください。</para>
-            </summary>
-            <param name="featureVector">特徴ベクトル</param>
-            <param name="NeuralNetTeacher">教師データ</param>
-            <returns>演算結果</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(System.Double[],System.Double)">
-            <summary>
-            特徴ベクトルを基に、学習を行う
-            <para>出力が一つしかない場合に特に便利です。例えばXORの学習時に利用してください。特徴ベクトルにはdouble型配列を用います。</para>
-            </summary>
-            <param name="featureVector">特徴ベクトル</param>
-            <param name="NeuralNetTeacher">教師データ</param>
-            <returns>演算結果</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(System.Double,System.Double)">
-            <summary>
-            特徴データを基に、学習を行う
-            <para>関数近似に利用可能です。</para>
-            </summary>
-            <param name="feature">特徴データ</param>
-            <param name="NeuralNetTeacher">教師データ</param>
-            <returns>演算結果</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Init">
-            <summary>
-            入力層・中間層・出力層のインスタンスを新規に生成するとともに、全ユニットを初期化する
+            スタティックメンバ用のコンストラクタ
             </summary>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Setup(System.String)">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.MyKind">
             <summary>
-            ファイルを指定して結合係数を読み込ませる
-            <para>ファイル名はデフォルトでは"NN.ini"です。</para>
+            この層の種類
             </summary>
-            <param name="fname">初期化用のパラメータの書かれたファイルのパス</param>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Setup(PatternRecognition.ArtificialNeuralNetwork.Parameter)">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.LearningCoefficient">
             <summary>
-            パラメータ構造体で初期化する
+            学習係数
             </summary>
-            <param name="_parameter">ニューラルネットワーク構造を規定するパラメータ</param>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Setup(System.Object,System.Int32,System.Int32)">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.Lenght">
             <summary>
-            最小パラメータ構造体及び入力層と出力層のユニット数で初期化する
+            ユニット数
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.VariationOfError">
+            <summary>
+            出力誤差の変化量
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.TotalOutputError">
+            <summary>
+            出力層の全ユニット出力の誤差を合計したもの
+            <para>絶対値をとった各ユニットの誤差を合計したものです。</para>
+            </summary>
+        </member>
+        <member name="T:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind">
+            <summary>
+            層の種類
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.InputLayer">
+            <summary>入力層</summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.HiddenLayer">
+            <summary>中間層（隠れ層）</summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.OutputLayer">
+            <summary>出力層</summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.NA">
+            <summary>不定</summary>
+        </member>
+        <member name="T:PatternRecognition.ArtificialNeuralNetwork.MinParameter">
+            <summary>
+            NN用最小パラメータ
+            </summary>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.MinParameter.#ctor(System.Int32,System.Int32,System.Double)">
+            <summary>
+            ニューラルネットワーク用の最小演算条件を表すMinParameter構造体のコンストラクタ
+            </summary>
+            <param name="_numOfUnitInHiddenLayer">中間層のユニット数<para>この数が多いと、過学習に陥りやすくなります。n個で2^n状態を表すことができることを考慮して決定して下さい。</para></param>
+            <param name="_numOfHiddenLayer">中間層数<para>この数+1だけ識別面（超平面）が形成されます。特徴量の分布をよく検討しなければまずいことになりそうです。</para></param>
+            <param name="_learningCoefficient">学習係数<para>この数が大きいと結合係数の修正量が大きくなりすぎていつまでも収束しなくなります。かといって小さいといつまでも終わりません。カットアンドトライで確認してみてください。</para></param>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.MinParameter.NumOfUnitInHiddenLayer">
+            <summary>
+            中間層のユニット数
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.MinParameter.NumOfHiddenLayer">
+            <summary>
+            中間層数
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.MinParameter.LearningCoefficient">
+            <summary>
+            学習係数
+            </summary>
+        </member>
+        <member name="T:PatternRecognition.ArtificialNeuralNetwork.Parameter">
+            <summary>
+            ニューラルネットワークのパラメータ構造体
+            <para>主にパラメータの受け渡しと設定値の不正チェックを目的とする。</para>
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfUnitInputLayer">
+            <summary>
+            入力層のユニット数がこの文字列に続きます
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfUnitHiddenLayer">
+            <summary>
+            中間層のユニット数がこの文字列に続きます
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfUnitOutputLayer">
+            <summary>
+            出力層のユニット数がこの文字列に続きます
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfNumHiddenLayer">
+            <summary>
+            中間層数がこの文字列に続きます
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfLearningCoefficient">
+            <summary>
+            学習係数がこの文字列に続きます
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.numOfHiddenLayer">
+            <summary>
+            中間層数
+            </summary>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.ToString">
+            <summary>
+            パラメータを文字列として返す
+            </summary>
+            <returns>文字列化したパラメータ</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.#ctor(System.String)">
+            <summary>
+            ファイル名を指定して、パラメータをファイルから読み込ませるコンストラクタ
+            </summary>
+            <param name="fname">ファイル名<para>デフォルト："Neural Network Parameter.txt"</para></param>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.#ctor(System.Int32,System.Int32,System.Int32,System.Int32,System.Double)">
+            <summary>
+            全パラメータを指定するコンストラクタ
+            </summary>
+            <param name="_numOfUnitInInputLayer">入力層のユニット数<para>特徴ベクトルの次元数と同じ数を指定して下さい。</para></param>
+            <param name="_numOfUnitInHiddenLayer">中間層のユニット数<para>この数が多いと、過学習に陥りやすくなります。n個で2^n状態を表すことができることを考慮して決定して下さい。</para></param>
+            <param name="_numOfUnitInOutputLayer">出力層のユニット数<para>この数は出力状態量と同じ数を指定して下さい。</para></param>
+            <param name="_numOfHiddenLayer">中間層数<para>この数+1だけ識別面（超平面）が形成されます。特徴量の分布をよく検討しなければまずいことになりそうです。</para></param>
+            <param name="_learningCoefficient">学習係数<para>この数が大きいと結合係数の修正量が大きくなりすぎていつまでも収束しなくなります。かといって小さいといつまでも終わりません。カットアンドトライで確認してみてください。</para></param>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.#ctor(System.Object,System.Int32,System.Int32)">
+            <summary>
+            パラメータをMinParameterとパラで指定するコンストラクタ
             </summary>
             <param name="minParameter">最小パラメータ</param>
             <param name="_numOfUnitInInputLayer">入力層のユニット数<para>特徴ベクトルの次元数と同じ数を指定して下さい。</para></param>
             <param name="_numOfUnitInOutputLayer">出力層のユニット数<para>この数は出力状態量と同じ数を指定して下さい。</para></param>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.#ctor">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.NumOfUnitInInputLayer">
             <summary>
-            コンストラクタ
+            入力層のユニット数
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.VariationOfError">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.NumOfUnitInHiddenLayer">
             <summary>
-            出力誤差の変化量
+            中間層のユニット数
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.TotalOutputError">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.NumOfUnitInOutputLayer">
             <summary>
-            出力誤差の合計
-            <para>絶対値をとった出力層における各ユニットの誤差を合計したものです。</para>
+            出力層のユニット数
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.OutputVectorLength">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.TotalLayer">
             <summary>
-            出力するベクトルの次元数
-            <para>ニューラルネットにとっては出力層のユニット数に該当します。</para>
+            合計層数
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.LearningCoefficient">
+            <summary>
+            学習係数
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.Error">
+            <summary>
+            エラー状況
+            <para>true: エラーあり</para>
             </summary>
         </member>
         <member name="T:PatternRecognition.ArtificialNeuralNetwork.Unit">
@@ -323,101 +510,198 @@
             発火の閾値
             </summary>
         </member>
-        <member name="T:PatternRecognition.ArtificialNeuralNetwork.Parameter">
+        <member name="T:PatternRecognition.Model">
             <summary>
-            ニューラルネットワークのパラメータ構造体
-            <para>主にパラメータの受け渡しと設定値の不正チェックを目的とする。</para>
+            モデル
+            <para>学習機に対して学習させたいデータを提供します。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfUnitInputLayer">
+        <member name="F:PatternRecognition.Model.className">
             <summary>
-            入力層のユニット数がこの文字列に続きます
+            クラス名
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfUnitHiddenLayer">
+        <member name="F:PatternRecognition.Model.buff">
             <summary>
-            中間層のユニット数がこの文字列に続きます
+            クラスを構成する特徴ベクトルバッファ
+            <para>特徴ベクトルを格納します。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfUnitOutputLayer">
+        <member name="F:PatternRecognition.Model.offerBuff">
             <summary>
-            出力層のユニット数がこの文字列に続きます
+            提供用の特徴ベクトルバッファ
+            <para>特徴ベクトルを格納します。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfNumHiddenLayer">
+        <member name="F:PatternRecognition.Model.readPoint">
             <summary>
-            中間層数がこの文字列に続きます
+            特徴ベクトルの読み出しポイント
+            <para>GetFeatureメソッドの読み出し時に使用する。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.keywordOfLearningCoefficient">
+        <member name="F:PatternRecognition.Model.myRandom">
             <summary>
-            学習係数がこの文字列に続きます
+            乱数ジェネレータ
+            <para>モデル内に格納している特徴ベクトルを外部から読み取る際にランダムにするのに利用します。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Parameter.numOfHiddenLayer">
+        <member name="F:PatternRecognition.Model.divisionNum">
             <summary>
-            中間層数
+            分割数
+            <para>供給モードがNonGroup以外の場合に有効となる特徴ベクトルの分割数です。</para>
             </summary>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.ToString">
+        <member name="F:PatternRecognition.Model.indexForDivision">
             <summary>
-            パラメータを文字列として返す
-            </summary>
-            <returns>文字列化したパラメータ</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.#ctor(System.String)">
-            <summary>
-            ファイル名を指定して、パラメータをファイルから読み込ませるコンストラクタ
-            </summary>
-            <param name="fname">ファイル名<para>デフォルト："Neural Network Parameter.txt"</para></param>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.#ctor(System.Int32,System.Int32,System.Int32,System.Int32,System.Double)">
-            <summary>
-            全パラメータを指定するコンストラクタ
-            </summary>
-            <param name="_numOfUnitInInputLayer">入力層のユニット数<para>特徴ベクトルの次元数と同じ数を指定して下さい。</para></param>
-            <param name="_numOfUnitInHiddenLayer">中間層のユニット数<para>この数が多いと、過学習に陥りやすくなります。n個で2^n状態を表すことができることを考慮して決定して下さい。</para></param>
-            <param name="_numOfUnitInOutputLayer">出力層のユニット数<para>この数は出力状態量と同じ数を指定して下さい。</para></param>
-            <param name="_numOfHiddenLayer">中間層数<para>この数+1だけ識別面（超平面）が形成されます。特徴量の分布をよく検討しなければまずいことになりそうです。</para></param>
-            <param name="_learningCoefficient">学習係数<para>この数が大きいと結合係数の修正量が大きくなりすぎていつまでも収束しなくなります。かといって小さいといつまでも終わりません。カットアンドトライで確認してみてください。</para></param>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Parameter.#ctor(System.Object,System.Int32,System.Int32)">
-            <summary>
-            パラメータをMinParameterとパラで指定するコンストラクタ
-            </summary>
-            <param name="minParameter">最小パラメータ</param>
-            <param name="_numOfUnitInInputLayer">入力層のユニット数<para>特徴ベクトルの次元数と同じ数を指定して下さい。</para></param>
-            <param name="_numOfUnitInOutputLayer">出力層のユニット数<para>この数は出力状態量と同じ数を指定して下さい。</para></param>
-        </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.NumOfUnitInInputLayer">
-            <summary>
-            入力層のユニット数
+            分割時の注目インデックス
+            <para>供給モードがNonGroup以外の場合に有効となるインデックスです。</para>
+            <para>このインデックスに該当するグループはFeatureSupplyModeに従い無視・注目されます。</para>
+            <para>インデックスはセット時に評価され、不正な場合は適当な数字に置き換えられます。</para>
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.NumOfUnitInHiddenLayer">
+        <member name="M:PatternRecognition.Model.ToString">
             <summary>
-            中間層のユニット数
+            クラスの構成メンバ（特徴ベクトル）を文字列化する
+            <para>統計処理に利用可能なように最後の要素にクラス名をラベルとして追加しています。</para>
+            </summary>
+            <returns>文字列化したクラスメンバ</returns>
+        </member>
+        <member name="M:PatternRecognition.Model.Shuffle">
+            <summary>
+            バッファメンバをシャッフルする
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.NumOfUnitInOutputLayer">
+        <member name="M:PatternRecognition.Model.GetFeature">
             <summary>
-            出力層のユニット数
+            保持する特徴ベクトルを分割し、指定インデックスを除いた部分から一つの特徴ベクトルを返す
+            <para>学習用に特徴ベクトルを提供します。提供方法はランダムとシーケンシャルの二通りが可能です。設定はプロパティを通して設定してください。</para>
+            </summary>
+            <returns>特徴ベクトル</returns>
+        </member>
+        <member name="M:PatternRecognition.Model.Add(PatternRecognition.Feature)">
+            <summary>
+            特徴ベクトルの追加
+            </summary>
+            <param name="newMember">追加メンバ</param>
+        </member>
+        <member name="M:PatternRecognition.Model.#ctor(System.String)">
+            <summary>
+            コンストラクタ
+            <para>クラスIDのみを設定するコンストラクタです。</para>
+            </summary>
+            <param name="_id">クラス名</param>
+        </member>
+        <member name="M:PatternRecognition.Model.#ctor(System.String,PatternRecognition.Feature[])">
+            <summary>
+            メンバの初期化付コンストラクタ
+            <para>クラスメンバはディープコピーされます。</para>
+            </summary>
+            <param name="_id">クラス名</param>
+            <param name="_members">メンバ</param>
+            <exception cref="T:System.SystemException">メンバがnullであったりメンバ数が0もしくは渡された特徴ベクトルの時限数が不一致だとスロー</exception>
+        </member>
+        <member name="M:PatternRecognition.Model.#ctor(PatternRecognition.Model)">
+            <summary>
+            コピーコンストラクタ
+            <para>メンバーはディープコピーされます。</para>
+            </summary>
+            <param name="model">コピー元のモデル</param>
+        </member>
+        <member name="P:PatternRecognition.Model.MemberSize">
+            <summary>
+            構成メンバの大きさ
+            <para>特徴ベクトルのサイズです。</para>
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.TotalLayer">
+        <member name="P:PatternRecognition.Model.Length">
             <summary>
-            合計層数
+            保持している全特徴ベクトル数
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.LearningCoefficient">
+        <member name="P:PatternRecognition.Model.LengthForGetFeature">
             <summary>
-            学習係数
+            現時点でGetFeature()メソッドが返すことのできる特徴ベクトルの数
+            <para>バグを検出した場合に-1を返すことがあります。</para>
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Parameter.Error">
+        <member name="P:PatternRecognition.Model.ID">
             <summary>
-            エラー状況
-            <para>true: エラーあり</para>
+            クラス名（ID）
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.Model.SequenceMode">
+            <summary>
+            読み込みモード
+            <para>ランダムに読み出すか、順番で読みだすかを決めます。</para>
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.Model.FeatureSupplyMode">
+            <summary>
+            特徴ベクトルの供給モード
+            <para>特徴ベクトルの提供する際に分割し、特定のインデックスに注目するかどうかを決定します。</para>
+            <para>NonGroupの場合、分割数設定</para>
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.Model.DivisionNum">
+            <summary>
+            分割数
+            <para>供給モードがNonGroup以外の場合に有効となる特徴ベクトルの分割数です。</para>
+            <para>分割設定数はセット時に評価され、不正な場合は適当な数字に置き換えられます。</para>
+            <para>なお、本値の変更によりIndexForDivisionに矛盾が生じる場合、IndexForDivisionは自動的に0にリセットされます。</para>
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.Model.IndexForDivision">
+            <summary>
+            分割時の注目インデックス
+            <para>供給モードがNonGroup以外の場合に有効となるインデックスです。</para>
+            <para>
+            インデックスはセット時に評価され、不正な場合は適当な数字に置き換えられます。
+            GetFeature()は、DivisionNumにより分割したと仮定した教師ベクトル群の内、指定したインデックス番号のみFeatureSupplyModeに従い無視・注目してベクトルを返ます。
+            ただし、DivisionNumが1の場合はこの引数自体が無視され、全ベクトルが返り値の対象となります。
+            </para>
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.Model.Item(System.Int32)">
+            <summary>
+            インデクサ
+            <para>本モデルが保持している全ての特徴ベクトルにアクセス可能です。</para>
+            </summary>
+            <param name="i">インデックス番号</param>
+            <returns>指定インデックスの特徴ベクトル</returns>
+        </member>
+        <member name="T:PatternRecognition.Model.ReadSequenceMode">
+            <summary>
+            特徴ベクトルの読み出しモード
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.Model.ReadSequenceMode.AtRandom">
+            <summary>
+            ランダムに読み出す
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.Model.ReadSequenceMode.InRotation">
+            <summary>
+            格納されている特徴ベクトルを順番に読み出すモード
+            </summary>
+        </member>
+        <member name="T:PatternRecognition.Model.SupplyMode">
+            <summary>
+            特徴ベクトルの供給モード
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.Model.SupplyMode.NeglectParticularGroup">
+            <summary>
+            保持する特徴データを分割したと仮定して、特定の組を無視して特徴ベクトルを供給する
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.Model.SupplyMode.TakeParticularGroup">
+            <summary>
+            保持する特徴データを分割したと仮定して、特定の組から特徴ベクトルを供給する
+            </summary>
+        </member>
+        <member name="F:PatternRecognition.Model.SupplyMode.NonDivide">
+            <summary>
+            分割を行わず、インデックス無視して特徴ベクトルを供給する
             </summary>
         </member>
         <member name="T:PatternRecognition.Discriminator">
@@ -529,6 +813,13 @@
         <member name="P:PatternRecognition.Discriminator.IDandLikelihood.Likelihood">
             <summary>
             尤度
+            </summary>
+        </member>
+        <member name="T:PatternRecognition.Feature">
+            <summary>
+            特徴ベクトル
+            <para>Vectorクラスのラッパー</para>
+            <para>クラス名から特徴ベクトルであることを連想しやすいようにラップした。</para>
             </summary>
         </member>
         <member name="T:PatternRecognition.Vector">
@@ -679,6 +970,49 @@
             </summary>
             <param name="index">要素番号</param>
             <returns>指定されたベクトル要素を返す</returns>
+        </member>
+        <member name="M:PatternRecognition.Feature.#ctor(System.Double[])">
+            <summary>
+            double型配列を使った初期化付コンストラクタ
+            <para>配列はディープコピーされます。</para>
+            </summary>
+            <param name="_vector">double型配列による特徴ベクトル</param>
+            <exception cref="T:System.SystemException">配列がnullならスロー</exception>
+        </member>
+        <member name="M:PatternRecognition.Feature.#ctor(PatternRecognition.Feature)">
+            <summary>
+            コピーコンストラクタ
+            </summary>
+            <param name="_vector">Featureクラスオブジェクト</param>
+            <exception cref="T:System.SystemException">配列がnullならスロー</exception>
+        </member>
+        <member name="M:PatternRecognition.Feature.#ctor(System.String)">
+            <summary>
+            文字列を利用したコンストラクタ
+            <para>カンマ・タブ・半角スペースで区切られた文字列を渡して下さい。</para>
+            <para>解析に成功すると文字列に含まれていた数値がセットされます。</para>
+            </summary>
+            <param name="_vector">文字列で表現した特徴ベクトル</param>
+        </member>
+        <member name="M:PatternRecognition.Feature.#ctor(System.Int32)">
+            <summary>
+            サイズ指定のコンストラクタ
+            <para>指定したサイズのベクトルを生成します。生成後に一つ一つの要素にアクセスする用途を想定しています。</para>
+            </summary>
+            <param name="size">ベクトルサイズ</param>
+        </member>
+        <member name="M:PatternRecognition.Feature.#ctor(System.Double)">
+            <summary>
+            要素数1のベクトルを生成します
+            <para>関数近似などの用途を想定しています。</para>
+            </summary>
+            <param name="value">格納したい数</param>
+        </member>
+        <member name="M:PatternRecognition.Feature.#ctor">
+            <summary>
+            初期化なしのコンストラクタ
+            <para>空のベクトルを生成します。適宜要素を追加するような用途での使用を想定しています。</para>
+            </summary>
         </member>
         <member name="T:PatternRecognition.Teacher">
             <summary>
@@ -981,217 +1315,155 @@
             <para>順繰り抜き出す方法とランダムに抜き出す方法があります。</para>
             </summary>
         </member>
-        <member name="T:PatternRecognition.ArtificialNeuralNetwork.Layer">
+        <member name="T:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork">
             <summary>
-            ニューラルネットにおける入力・中間・出力層クラス
-            <para>入力層から出力層までを扱うクラスです。</para>
-            <para>利用クラスにおいて層を配列として宣言して扱ってもよかったのだろうけど、なんだか嫌だったのでこのクラスを一つ宣言すれば完結するようにした。</para>
-            <para>メモ：処理には再帰構造を使っています。</para>
-            <para>2011/12/11現在、ユニット間の結合係数は層の出力を得るたびに逐次処理を行っているので厳密にはBPのアルゴリズムとはずれるんだけど上手く動いている。</para>
+            ニューラルネットワーク処理クラス
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.grossLayerNum">
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.parameter">
             <summary>
-            総層数
+            本クラスの構造を規定するパラメータ
+            <para>中間層数などを格納する。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.myLayerNum">
+        <member name="F:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.layer">
             <summary>
-            通し層番号
+            演算処理を実行するレイヤークラス
+            <para>再帰構造になっているので一つのオブジェクトで演算は完結している。</para>
             </summary>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.units">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.GetParameter">
             <summary>
-            この層が保持するユニット
+            ニューラルネットワークの構成パラメータを返す
             </summary>
+            <returns>ニューラルネットワークの構成パラメータ</returns>
         </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.parameter">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.ToString">
             <summary>
-            ニューラルネットのパラメータ
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.subsidiaryLayer">
-            <summary>
-            下層レイヤ
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.learningCoefficient">
-            <summary>
-            学習係数
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.preLayerUnitNum">
-            <summary>
-            前層のユニット数
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.variationError">
-            <summary>
-            出力層における平均出力誤差の変化量
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.backupError">
-            <summary>
-            出力層における平均出力誤差のバックアップ
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.totalOutputError">
-            <summary>
-            出力層における出力誤差の総計
-            <para>以下で定義しています。</para>
-            <para>sumError += Math.Abs(this.units[i].Error);</para>
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.myRandom">
-            <summary>
-            乱数生成器
-            <para>教師データに対する誤差量に加える乱数に利用します。</para>
-            </summary>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.ToString">
-            <summary>
-            この層が保持する全ユニットの結合係数を文字列化する
-            </summary>
-            <returns>文字列化したレイヤ情報</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetThreshold">
-            <summary>
-            各ユニットが持つ発火の閾値を配列で取得する
+            ニューラルネットの構成パラメータ及び結合係数を文字列として出力する。
             </summary>
             <returns></returns>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetWeight(System.Int32)">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Save(System.String,System.Boolean)">
             <summary>
-            指定された前段のユニット番号に対する重みを配列で返す
-            <remarks>
-            例えば本オブジェクトが出力層である時に8という数字が指定された場合、直前の中間層の持つ第9ユニットに対する結合係数を返す。
-            </remarks>
-            </summary>
-            <param name="index">前段のユニット番号</param>
-            <returns>指定ユニットと結びついた重み</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetError">
-            <summary>
-            各ユニットの出力誤差を配列で返す
-            </summary>
-            <returns>出力誤差</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetOutput">
-            <summary>
-            各ユニットの出力値を配列で返す
-            </summary>
-            <returns>ユニットの出力</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.CalcOwnUnitsError(PatternRecognition.Vector,PatternRecognition.Vector)">
-            <summary>
-            ユニットの出力誤差を計算し、ユニットに記憶させる
-            </summary>
-            <param name="NeuralNetTeacher">教師ベクトル</param>
-            <param name="myOutput">出力ベクトル</param>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetAmountOfCorrection(System.Double,System.Double,System.Double)">
-            <summary>
-            結合荷重の修正量を返す
-            </summary>
-            <param name="unitOutputError">ユニットの出力誤差</param>
-            <param name="unitOutput">ユニットの出力値</param>
-            <param name="preLayerOutput">調整したい結合荷重が接続された前段ユニットの出力値</param>
-            <returns>重み修正量</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.CalibrateWeightAndThreshold(PatternRecognition.Vector,PatternRecognition.Vector)">
-            <summary>
-            結合係数修正量の計算、および発火の閾値修正を実施する
-            <para>ユニットの誤差量を計算した後に呼び出してください。</para>
-            </summary>
-            <param name="preLayerOutput">前段の層の出力</param>
-            <param name="myOutput">この層の出力ベクトル</param>
-            <exception cref="T:System.SystemException">入力層で本メソッドが呼び出されるとスロー</exception>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.CalibrateWeightVectors">
-            <summary>
-            全てのユニットに対して予めセットした修正量を適用して、結合係数を調整する
-            <para>より下層に位置するLayerの修正も指示する。</para>
-            </summary>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.GetResult(PatternRecognition.Vector,PatternRecognition.Vector)">
-            <summary>
-            特徴ベクトルを渡して、演算結果を返す
-            </summary>
-            <param name="preLayerOutput">特徴ベクトル／前段の出力ベクトル</param>
-            <param name="teacher">教師ベクトル</param>
-            <returns>演算結果</returns>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.InitWeightVectorWithRandom">
-            <summary>
-            重みベクトルを乱数で初期化する
-            </summary>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.Setup(System.String)">
-            <summary>
-            ファイル名を指定して結合係数を読み込ませる
+            指定ファイル名でニューラルネットの状態量をテキストファイルへ保存する
+            <para>デフォルトのファイル名は「NN.ini」です。</para>
             </summary>
             <param name="fname">ファイル名</param>
+            <param name="append">追記の有無<para>true：追記</para></param>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.#ctor(PatternRecognition.ArtificialNeuralNetwork.Parameter,System.Int32,System.Int32)">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Recognize(System.Double[])">
             <summary>
-            レイヤークラスのコンストラクタ
-            <para>このクラスインスタンスを一つ生成すれば、入力層から出力層までを表現可能です。</para>
-            <para>
-            本クラスを生成する際、numOfPreLayerUnitは0と設定することをお勧めします。
-            0でなくともエラーは出ませんが、入力層には結合係数が定義されないためです。
-            </para>
+            特徴ベクトルを基に識別を行う
             </summary>
-            <param name="_parameter">ニューラルネットのパラメータ</param>
-            <param name="_myLayerNum">層番号</param>
-            <param name="numOfPreLayerUnit">前の層のユニット数（省略可能です。デフォルトでは0となります。）</param>
+            <param name="featureVector">特徴ベクトル</param>
+            <returns>識別結果</returns>
         </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.Layer.#cctor">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Recognize(PatternRecognition.Feature)">
             <summary>
-            スタティックメンバ用のコンストラクタ
+            特徴ベクトルを基に識別を行う
             </summary>
+            <param name="featureVector">特徴ベクトル</param>
+            <returns>識別結果</returns>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.MyKind">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Recognize(System.Double)">
             <summary>
-            この層の種類
+            特徴データを基に識別を行う
+            <para>入力ユニットが1つの場合に使用します。出力層の第0ユニットの出力を返します。関数近似の用途を想定しています。</para>
             </summary>
+            <param name="feature">特徴データ</param>
+            <returns>返値<para>出力層の第0ユニットの出力</para></returns>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.LearningCoefficient">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(System.Double[],System.Double[])">
             <summary>
-            学習係数
+            特徴ベクトルを基に、学習を行う
             </summary>
+            <param name="featureVector">特徴ベクトル</param>
+            <param name="NeuralNetTeacher">教師ベクトル</param>
+            <returns>識別結果</returns>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.Lenght">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(PatternRecognition.Feature,PatternRecognition.Vector)">
             <summary>
-            ユニット数
+            特徴ベクトルを基に、学習を行う
+            </summary>
+            <param name="featureVector">特徴ベクトル</param>
+            <param name="NeuralNetTeacher">教師ベクトル</param>
+            <returns>識別結果</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(PatternRecognition.Feature,System.Double)">
+            <summary>
+            特徴ベクトルを基に、学習を行う
+            <para>出力が一つしかない場合に特に便利です。例えばXORの学習時に利用してください。</para>
+            </summary>
+            <param name="featureVector">特徴ベクトル</param>
+            <param name="NeuralNetTeacher">教師データ</param>
+            <returns>演算結果</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(System.Double[],System.Double)">
+            <summary>
+            特徴ベクトルを基に、学習を行う
+            <para>出力が一つしかない場合に特に便利です。例えばXORの学習時に利用してください。特徴ベクトルにはdouble型配列を用います。</para>
+            </summary>
+            <param name="featureVector">特徴ベクトル</param>
+            <param name="NeuralNetTeacher">教師データ</param>
+            <returns>演算結果</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Learn(System.Double,System.Double)">
+            <summary>
+            特徴データを基に、学習を行う
+            <para>関数近似に利用可能です。</para>
+            </summary>
+            <param name="feature">特徴データ</param>
+            <param name="NeuralNetTeacher">教師データ</param>
+            <returns>演算結果</returns>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Init">
+            <summary>
+            入力層・中間層・出力層のインスタンスを新規に生成するとともに、全ユニットを初期化する
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.VariationOfError">
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Setup(System.String)">
+            <summary>
+            ファイルを指定して結合係数を読み込ませる
+            <para>ファイル名はデフォルトでは"NN.ini"です。</para>
+            </summary>
+            <param name="fname">初期化用のパラメータの書かれたファイルのパス</param>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Setup(PatternRecognition.ArtificialNeuralNetwork.Parameter)">
+            <summary>
+            パラメータ構造体で初期化する
+            </summary>
+            <param name="_parameter">ニューラルネットワーク構造を規定するパラメータ</param>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.Setup(System.Object,System.Int32,System.Int32)">
+            <summary>
+            最小パラメータ構造体及び入力層と出力層のユニット数で初期化する
+            </summary>
+            <param name="minParameter">最小パラメータ</param>
+            <param name="_numOfUnitInInputLayer">入力層のユニット数<para>特徴ベクトルの次元数と同じ数を指定して下さい。</para></param>
+            <param name="_numOfUnitInOutputLayer">出力層のユニット数<para>この数は出力状態量と同じ数を指定して下さい。</para></param>
+        </member>
+        <member name="M:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.#ctor">
+            <summary>
+            コンストラクタ
+            </summary>
+        </member>
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.VariationOfError">
             <summary>
             出力誤差の変化量
             </summary>
         </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.Layer.TotalOutputError">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.TotalOutputError">
             <summary>
-            出力層の全ユニット出力の誤差を合計したもの
-            <para>絶対値をとった各ユニットの誤差を合計したものです。</para>
+            出力誤差の合計
+            <para>絶対値をとった出力層における各ユニットの誤差を合計したものです。</para>
             </summary>
         </member>
-        <member name="T:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind">
+        <member name="P:PatternRecognition.ArtificialNeuralNetwork.NeuralNetwork.OutputVectorLength">
             <summary>
-            層の種類
+            出力するベクトルの次元数
+            <para>ニューラルネットにとっては出力層のユニット数に該当します。</para>
             </summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.InputLayer">
-            <summary>入力層</summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.HiddenLayer">
-            <summary>中間層（隠れ層）</summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.OutputLayer">
-            <summary>出力層</summary>
-        </member>
-        <member name="F:PatternRecognition.ArtificialNeuralNetwork.Layer.Kind.NA">
-            <summary>不定</summary>
         </member>
         <member name="T:PatternRecognition.PatternRecognitionTest">
             <summary>
@@ -1222,278 +1494,6 @@
             2011/12/25現在、0～1までの出力しか得られない。
             出力関数と学習則を変更するか、関数近似時には値のマッピングが必要である。
             他の人はどうやってんだろう？</para>
-            </summary>
-        </member>
-        <member name="T:PatternRecognition.Model">
-            <summary>
-            モデル
-            <para>学習機に対して学習させたいデータを提供します。</para>
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.className">
-            <summary>
-            クラス名
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.buff">
-            <summary>
-            クラスを構成する特徴ベクトルバッファ
-            <para>特徴ベクトルを格納します。</para>
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.offerBuff">
-            <summary>
-            提供用の特徴ベクトルバッファ
-            <para>特徴ベクトルを格納します。</para>
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.readPoint">
-            <summary>
-            特徴ベクトルの読み出しポイント
-            <para>GetFeatureメソッドの読み出し時に使用する。</para>
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.myRandom">
-            <summary>
-            乱数ジェネレータ
-            <para>モデル内に格納している特徴ベクトルを外部から読み取る際にランダムにするのに利用します。</para>
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.divisionNum">
-            <summary>
-            分割数
-            <para>供給モードがNonGroup以外の場合に有効となる特徴ベクトルの分割数です。</para>
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.indexForDivision">
-            <summary>
-            分割時の注目インデックス
-            <para>供給モードがNonGroup以外の場合に有効となるインデックスです。</para>
-            <para>このインデックスに該当するグループはFeatureSupplyModeに従い無視・注目されます。</para>
-            <para>インデックスはセット時に評価され、不正な場合は適当な数字に置き換えられます。</para>
-            </summary>
-        </member>
-        <member name="M:PatternRecognition.Model.ToString">
-            <summary>
-            クラスの構成メンバ（特徴ベクトル）を文字列化する
-            <para>統計処理に利用可能なように最後の要素にクラス名をラベルとして追加しています。</para>
-            </summary>
-            <returns>文字列化したクラスメンバ</returns>
-        </member>
-        <member name="M:PatternRecognition.Model.Shuffle">
-            <summary>
-            バッファメンバをシャッフルする
-            </summary>
-        </member>
-        <member name="M:PatternRecognition.Model.GetFeature">
-            <summary>
-            保持する特徴ベクトルを分割し、指定インデックスを除いた部分から一つの特徴ベクトルを返す
-            <para>学習用に特徴ベクトルを提供します。提供方法はランダムとシーケンシャルの二通りが可能です。設定はプロパティを通して設定してください。</para>
-            </summary>
-            <returns>特徴ベクトル</returns>
-        </member>
-        <member name="M:PatternRecognition.Model.Add(PatternRecognition.Feature)">
-            <summary>
-            特徴ベクトルの追加
-            </summary>
-            <param name="newMember">追加メンバ</param>
-        </member>
-        <member name="M:PatternRecognition.Model.#ctor(System.String)">
-            <summary>
-            コンストラクタ
-            <para>クラスIDのみを設定するコンストラクタです。</para>
-            </summary>
-            <param name="_id">クラス名</param>
-        </member>
-        <member name="M:PatternRecognition.Model.#ctor(System.String,PatternRecognition.Feature[])">
-            <summary>
-            メンバの初期化付コンストラクタ
-            <para>クラスメンバはディープコピーされます。</para>
-            </summary>
-            <param name="_id">クラス名</param>
-            <param name="_members">メンバ</param>
-            <exception cref="T:System.SystemException">メンバがnullであったりメンバ数が0もしくは渡された特徴ベクトルの時限数が不一致だとスロー</exception>
-        </member>
-        <member name="M:PatternRecognition.Model.#ctor(PatternRecognition.Model)">
-            <summary>
-            コピーコンストラクタ
-            <para>メンバーはディープコピーされます。</para>
-            </summary>
-            <param name="model">コピー元のモデル</param>
-        </member>
-        <member name="P:PatternRecognition.Model.MemberSize">
-            <summary>
-            構成メンバの大きさ
-            <para>特徴ベクトルのサイズです。</para>
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.Length">
-            <summary>
-            保持している全特徴ベクトル数
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.LengthForGetFeature">
-            <summary>
-            現時点でGetFeature()メソッドが返すことのできる特徴ベクトルの数
-            <para>バグを検出した場合に-1を返すことがあります。</para>
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.ID">
-            <summary>
-            クラス名（ID）
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.SequenceMode">
-            <summary>
-            読み込みモード
-            <para>ランダムに読み出すか、順番で読みだすかを決めます。</para>
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.FeatureSupplyMode">
-            <summary>
-            特徴ベクトルの供給モード
-            <para>特徴ベクトルの提供する際に分割し、特定のインデックスに注目するかどうかを決定します。</para>
-            <para>NonGroupの場合、分割数設定</para>
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.DivisionNum">
-            <summary>
-            分割数
-            <para>供給モードがNonGroup以外の場合に有効となる特徴ベクトルの分割数です。</para>
-            <para>分割設定数はセット時に評価され、不正な場合は適当な数字に置き換えられます。</para>
-            <para>なお、本値の変更によりIndexForDivisionに矛盾が生じる場合、IndexForDivisionは自動的に0にリセットされます。</para>
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.IndexForDivision">
-            <summary>
-            分割時の注目インデックス
-            <para>供給モードがNonGroup以外の場合に有効となるインデックスです。</para>
-            <para>
-            インデックスはセット時に評価され、不正な場合は適当な数字に置き換えられます。
-            GetFeature()は、DivisionNumにより分割したと仮定した教師ベクトル群の内、指定したインデックス番号のみFeatureSupplyModeに従い無視・注目してベクトルを返ます。
-            ただし、DivisionNumが1の場合はこの引数自体が無視され、全ベクトルが返り値の対象となります。
-            </para>
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.Model.Item(System.Int32)">
-            <summary>
-            インデクサ
-            <para>本モデルが保持している全ての特徴ベクトルにアクセス可能です。</para>
-            </summary>
-            <param name="i">インデックス番号</param>
-            <returns>指定インデックスの特徴ベクトル</returns>
-        </member>
-        <member name="T:PatternRecognition.Model.ReadSequenceMode">
-            <summary>
-            特徴ベクトルの読み出しモード
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.ReadSequenceMode.AtRandom">
-            <summary>
-            ランダムに読み出す
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.ReadSequenceMode.InRotation">
-            <summary>
-            格納されている特徴ベクトルを順番に読み出すモード
-            </summary>
-        </member>
-        <member name="T:PatternRecognition.Model.SupplyMode">
-            <summary>
-            特徴ベクトルの供給モード
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.SupplyMode.NeglectParticularGroup">
-            <summary>
-            保持する特徴データを分割したと仮定して、特定の組を無視して特徴ベクトルを供給する
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.SupplyMode.TakeParticularGroup">
-            <summary>
-            保持する特徴データを分割したと仮定して、特定の組から特徴ベクトルを供給する
-            </summary>
-        </member>
-        <member name="F:PatternRecognition.Model.SupplyMode.NonDivide">
-            <summary>
-            分割を行わず、インデックス無視して特徴ベクトルを供給する
-            </summary>
-        </member>
-        <member name="T:PatternRecognition.ArtificialNeuralNetwork.MinParameter">
-            <summary>
-            NN用最小パラメータ
-            </summary>
-        </member>
-        <member name="M:PatternRecognition.ArtificialNeuralNetwork.MinParameter.#ctor(System.Int32,System.Int32,System.Double)">
-            <summary>
-            ニューラルネットワーク用の最小演算条件を表すMinParameter構造体のコンストラクタ
-            </summary>
-            <param name="_numOfUnitInHiddenLayer">中間層のユニット数<para>この数が多いと、過学習に陥りやすくなります。n個で2^n状態を表すことができることを考慮して決定して下さい。</para></param>
-            <param name="_numOfHiddenLayer">中間層数<para>この数+1だけ識別面（超平面）が形成されます。特徴量の分布をよく検討しなければまずいことになりそうです。</para></param>
-            <param name="_learningCoefficient">学習係数<para>この数が大きいと結合係数の修正量が大きくなりすぎていつまでも収束しなくなります。かといって小さいといつまでも終わりません。カットアンドトライで確認してみてください。</para></param>
-        </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.MinParameter.NumOfUnitInHiddenLayer">
-            <summary>
-            中間層のユニット数
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.MinParameter.NumOfHiddenLayer">
-            <summary>
-            中間層数
-            </summary>
-        </member>
-        <member name="P:PatternRecognition.ArtificialNeuralNetwork.MinParameter.LearningCoefficient">
-            <summary>
-            学習係数
-            </summary>
-        </member>
-        <member name="T:PatternRecognition.Feature">
-            <summary>
-            特徴ベクトル
-            <para>Vectorクラスのラッパー</para>
-            <para>クラス名から特徴ベクトルであることを連想しやすいようにラップした。</para>
-            </summary>
-        </member>
-        <member name="M:PatternRecognition.Feature.#ctor(System.Double[])">
-            <summary>
-            double型配列を使った初期化付コンストラクタ
-            <para>配列はディープコピーされます。</para>
-            </summary>
-            <param name="_vector">double型配列による特徴ベクトル</param>
-            <exception cref="T:System.SystemException">配列がnullならスロー</exception>
-        </member>
-        <member name="M:PatternRecognition.Feature.#ctor(PatternRecognition.Feature)">
-            <summary>
-            コピーコンストラクタ
-            </summary>
-            <param name="_vector">Featureクラスオブジェクト</param>
-            <exception cref="T:System.SystemException">配列がnullならスロー</exception>
-        </member>
-        <member name="M:PatternRecognition.Feature.#ctor(System.String)">
-            <summary>
-            文字列を利用したコンストラクタ
-            <para>カンマ・タブ・半角スペースで区切られた文字列を渡して下さい。</para>
-            <para>解析に成功すると文字列に含まれていた数値がセットされます。</para>
-            </summary>
-            <param name="_vector">文字列で表現した特徴ベクトル</param>
-        </member>
-        <member name="M:PatternRecognition.Feature.#ctor(System.Int32)">
-            <summary>
-            サイズ指定のコンストラクタ
-            <para>指定したサイズのベクトルを生成します。生成後に一つ一つの要素にアクセスする用途を想定しています。</para>
-            </summary>
-            <param name="size">ベクトルサイズ</param>
-        </member>
-        <member name="M:PatternRecognition.Feature.#ctor(System.Double)">
-            <summary>
-            要素数1のベクトルを生成します
-            <para>関数近似などの用途を想定しています。</para>
-            </summary>
-            <param name="value">格納したい数</param>
-        </member>
-        <member name="M:PatternRecognition.Feature.#ctor">
-            <summary>
-            初期化なしのコンストラクタ
-            <para>空のベクトルを生成します。適宜要素を追加するような用途での使用を想定しています。</para>
             </summary>
         </member>
     </members>
